@@ -11,11 +11,14 @@ Usage:
     python -m pygit add <file> [<file> ...]
     python -m pygit add .
     python -m pygit status
+    python -m pygit commit -m <message>
+    python -m pygit diff [--staged]
     python -m pygit branch
     python -m pygit branch <name>
     python -m pygit branch -d <name>
     python -m pygit switch <branch>
     python -m pygit switch -c <branch>
+    python -m pygit merge <branch>
 """
 
 import os
@@ -35,6 +38,7 @@ from pygitlib.branch import (
 from pygitlib.checkout import switch_branch
 from pygitlib.diff import diff_unstaged, diff_staged
 from pygitlib.merge import merge_branch
+from pygitlib.commit import commit as make_commit
 
 
 def cmd_init(args):
@@ -181,6 +185,27 @@ def cmd_status(args):
             print("no changes added to commit (use \"pygit add\")")
 
 
+def cmd_commit(args):
+    git_dir  = get_git_dir()
+    try:
+        sha = make_commit(git_dir, args.message)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
+
+    branch = current_branch(git_dir) or "HEAD"
+    # Show "(root-commit)" label for the very first commit on a branch
+    head_commit = None
+    try:
+        from pygitlib.objects import read_commit as _rc
+        head_commit = _rc(git_dir, sha)
+    except Exception:
+        pass
+    is_root = head_commit is not None and len(head_commit.parents) == 0
+    root_label = " (root-commit)" if is_root else ""
+    print(f"[{branch}{root_label} {sha[:7]}] {args.message}")
+
+
 def cmd_diff(args):
     git_dir = get_git_dir()
     work_dir = git_dir.parent
@@ -290,6 +315,11 @@ def main():
 
     p_status = sub.add_parser("status", help="Show working tree status")
     p_status.set_defaults(func=cmd_status)
+
+    p_commit = sub.add_parser("commit", help="Record staged changes as a commit")
+    p_commit.add_argument("-m", dest="message", required=True,
+                          metavar="message", help="Commit message")
+    p_commit.set_defaults(func=cmd_commit)
 
     p_branch = sub.add_parser("branch", help="List, create, or delete branches")
     p_branch.add_argument("-d", "-D", dest="delete", action="store_true",

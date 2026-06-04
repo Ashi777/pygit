@@ -277,7 +277,7 @@ def _write_tree_recursive(git_dir: Path, tree: dict) -> str:
     for name, value in sorted(tree.items()):
         if isinstance(value, dict):
             sub_sha = _write_tree_recursive(git_dir, value)
-            entries.append(TreeEntry(mode="040000", name=name, sha=sub_sha))
+            entries.append(TreeEntry(mode="40000", name=name, sha=sub_sha))
         else:
             sha, mode = value
             entries.append(TreeEntry(mode=mode, name=name, sha=sha))

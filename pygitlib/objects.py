@@ -169,7 +169,7 @@ def encode_tree(entries: list[TreeEntry]) -> bytes:
     """
     # Sort entries: directories (040000) sort with a trailing slash
     def sort_key(e: TreeEntry) -> str:
-        return e.name + ("/" if e.mode == "040000" else "")
+        return e.name + ("/" if e.mode in ("040000", "40000") else "")
 
     sorted_entries = sorted(entries, key=sort_key)
 

@@ -41,7 +41,7 @@ def _flatten_tree(git_dir: Path, tree_sha: str, prefix: str = "") -> dict[str, t
     result: dict[str, tuple[str, str]] = {}
     for entry in _read_tree(git_dir, tree_sha):
         path = f"{prefix}/{entry.name}" if prefix else entry.name
-        if entry.mode == "040000":
+        if entry.mode in ("040000", "40000"):
             result.update(_flatten_tree(git_dir, entry.sha, path))
         else:
             result[path] = (entry.sha, entry.mode)
