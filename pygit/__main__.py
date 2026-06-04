@@ -34,6 +34,7 @@ from pygitlib.branch import (
 )
 from pygitlib.checkout import switch_branch
 from pygitlib.diff import diff_unstaged, diff_staged
+from pygitlib.merge import merge_branch
 
 
 def cmd_init(args):
@@ -196,6 +197,15 @@ def cmd_diff(args):
         sys.stdout.write(diff_text)
 
 
+def cmd_merge(args):
+    git_dir = get_git_dir()
+    work_dir = git_dir.parent
+    result = merge_branch(git_dir, work_dir, args.branch)
+    print(result.message)
+    if not result.success:
+        sys.exit(1)
+
+
 def cmd_branch(args):
     git_dir = get_git_dir()
 
@@ -292,6 +302,10 @@ def main():
                           help="Create and switch to a new branch")
     p_switch.add_argument("branch", help="Branch to switch to")
     p_switch.set_defaults(func=cmd_switch)
+
+    p_merge = sub.add_parser("merge", help="Merge a branch into the current branch")
+    p_merge.add_argument("branch", help="Branch to merge")
+    p_merge.set_defaults(func=cmd_merge)
 
     p_diff = sub.add_parser("diff", help="Show changes")
     p_diff.add_argument(
