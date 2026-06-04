@@ -11,6 +11,11 @@ Usage:
     python -m pygit add <file> [<file> ...]
     python -m pygit add .
     python -m pygit status
+    python -m pygit branch
+    python -m pygit branch <name>
+    python -m pygit branch -d <name>
+    python -m pygit switch <branch>
+    python -m pygit switch -c <branch>
 """
 
 import os
@@ -23,6 +28,11 @@ from pygitlib.objects import (
     write_tree, read_tree, read_commit, TreeEntry
 )
 from pygitlib.index import add as stage_files, status as repo_status
+from pygitlib.branch import (
+    list_branches, create_branch, delete_branch,
+    current_branch, resolve_ref,
+)
+from pygitlib.checkout import switch_branch
 
 
 def cmd_init(args):
@@ -169,6 +179,50 @@ def cmd_status(args):
             print("no changes added to commit (use \"pygit add\")")
 
 
+def cmd_branch(args):
+    git_dir = get_git_dir()
+
+    if args.delete:
+        if not args.name:
+            print("error: branch name required with -d", file=sys.stderr)
+            sys.exit(1)
+        try:
+            delete_branch(git_dir, args.name)
+            print(f"Deleted branch {args.name}")
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(1)
+
+    elif args.name:
+        try:
+            sha = create_branch(git_dir, args.name)
+            # git branch <name> prints nothing on success (same as real git)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(1)
+
+    else:
+        # List all branches; mark the current one with *
+        cur = current_branch(git_dir)
+        branches = list_branches(git_dir)
+        if not branches:
+            print("  (no branches yet — make your first commit)")
+            return
+        for b in branches:
+            marker = "* " if b == cur else "  "
+            print(f"{marker}{b}")
+
+
+def cmd_switch(args):
+    git_dir = get_git_dir()
+    work_dir = git_dir.parent
+    try:
+        switch_branch(git_dir, work_dir, args.branch, create=args.create)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="pygit",
@@ -209,6 +263,18 @@ def main():
 
     p_status = sub.add_parser("status", help="Show working tree status")
     p_status.set_defaults(func=cmd_status)
+
+    p_branch = sub.add_parser("branch", help="List, create, or delete branches")
+    p_branch.add_argument("-d", "-D", dest="delete", action="store_true",
+                          help="Delete a branch")
+    p_branch.add_argument("name", nargs="?", help="Branch name")
+    p_branch.set_defaults(func=cmd_branch)
+
+    p_switch = sub.add_parser("switch", help="Switch to a branch")
+    p_switch.add_argument("-c", dest="create", action="store_true",
+                          help="Create and switch to a new branch")
+    p_switch.add_argument("branch", help="Branch to switch to")
+    p_switch.set_defaults(func=cmd_switch)
 
     args = parser.parse_args()
     if not args.command:
