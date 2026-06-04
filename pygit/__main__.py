@@ -33,6 +33,7 @@ from pygitlib.branch import (
     current_branch, resolve_ref,
 )
 from pygitlib.checkout import switch_branch
+from pygitlib.diff import diff_unstaged, diff_staged
 
 
 def cmd_init(args):
@@ -179,6 +180,22 @@ def cmd_status(args):
             print("no changes added to commit (use \"pygit add\")")
 
 
+def cmd_diff(args):
+    git_dir = get_git_dir()
+    work_dir = git_dir.parent
+
+    if args.staged:
+        entries = diff_staged(git_dir)
+    else:
+        entries = diff_unstaged(git_dir, work_dir)
+
+    if not entries:
+        return   # nothing to show, no output (same as real git)
+
+    for _path, diff_text in entries:
+        sys.stdout.write(diff_text)
+
+
 def cmd_branch(args):
     git_dir = get_git_dir()
 
@@ -275,6 +292,13 @@ def main():
                           help="Create and switch to a new branch")
     p_switch.add_argument("branch", help="Branch to switch to")
     p_switch.set_defaults(func=cmd_switch)
+
+    p_diff = sub.add_parser("diff", help="Show changes")
+    p_diff.add_argument(
+        "--staged", "--cached", dest="staged", action="store_true",
+        help="Show staged changes (index vs HEAD)",
+    )
+    p_diff.set_defaults(func=cmd_diff)
 
     args = parser.parse_args()
     if not args.command:
