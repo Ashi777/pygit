@@ -1,5 +1,7 @@
 # PyGit — Git Implementation from Scratch
 
+[![Tests](https://github.com/Ashi777/pygit/actions/workflows/test.yml/badge.svg)](https://github.com/Ashi777/pygit/actions/workflows/test.yml)
+
 A byte-for-byte compatible Git implementation written in pure Python.
 Produces identical SHA-1 hashes and object formats to the real `git` binary.
 No external dependencies — only the Python standard library.
