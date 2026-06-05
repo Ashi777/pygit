@@ -45,6 +45,11 @@ No external dependencies — only the Python standard library.
 - Staged blobs (index) are always protected — staged work is never deleted
 - `gc` reports unreachable loose objects; `gc --prune` removes them
 
+**Tags**
+- Lightweight tags: a single ref file pointing to a commit SHA (no new object)
+- Annotated tags: a full `tag` object with tagger identity, timestamp, and message
+- `tag`, `tag -a -m`, `tag -d`
+
 ## Setup
 
 ```
@@ -102,6 +107,16 @@ pygit commit -m "message"          # record staged changes as a commit
 pygit stash                        # save changes and restore HEAD state
 pygit stash pop                    # restore most recent stash and remove it
 pygit stash list                   # show all stash entries
+```
+
+### Tags
+
+```
+pygit tag                          # list all tags
+pygit tag <name>                   # create a lightweight tag at HEAD
+pygit tag <name> <commit>          # lightweight tag at a specific commit
+pygit tag -a <name> -m "message"   # create an annotated tag at HEAD
+pygit tag -d <name>                # delete a tag
 ```
 
 ### Garbage collection

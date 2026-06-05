@@ -134,7 +134,16 @@ def find_reachable(git_dir: Path) -> set[str]:
                 if entry.sha not in reachable:
                     queue.append(entry.sha)
 
-        # blobs and tags: no further objects to enqueue
+        elif obj_type == "tag":
+            # Annotated tag — follow through to the tagged object
+            for line in data.decode().split("\n"):
+                if line.startswith("object "):
+                    tagged_sha = line[7:].strip()
+                    if tagged_sha not in reachable:
+                        queue.append(tagged_sha)
+                    break
+
+        # blobs: no further objects to enqueue
 
     return reachable
 

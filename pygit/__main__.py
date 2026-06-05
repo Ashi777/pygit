@@ -26,6 +26,10 @@ Usage:
     python -m pygit stash list
     python -m pygit gc
     python -m pygit gc --prune
+    python -m pygit tag
+    python -m pygit tag <name>
+    python -m pygit tag -a <name> -m <message>
+    python -m pygit tag -d <name>
 """
 
 import os
@@ -49,6 +53,7 @@ from pygitlib.commit import commit as make_commit
 from pygitlib.restore import restore_staged, restore_worktree
 from pygitlib.stash import stash_push, stash_pop, stash_list
 from pygitlib.gc import run_gc
+from pygitlib.tag import list_tags, create_tag, delete_tag, resolve_tag
 
 
 def cmd_init(args):
@@ -311,6 +316,39 @@ def cmd_switch(args):
         sys.exit(1)
 
 
+def cmd_tag(args):
+    git_dir = get_git_dir()
+
+    if args.delete:
+        if not args.name:
+            print("error: tag name required with -d", file=sys.stderr)
+            sys.exit(1)
+        try:
+            delete_tag(git_dir, args.name)
+            print(f"Deleted tag '{args.name}'")
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(1)
+
+    elif args.name:
+        # Create lightweight or annotated tag
+        message = args.message   # None for lightweight
+        target  = args.commit or "HEAD"
+        try:
+            sha = create_tag(git_dir, args.name, target=target, message=message)
+            if message is not None:
+                print(f"Created annotated tag '{args.name}' ({sha[:7]})")
+            # lightweight tags print nothing on success (same as real git)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(1)
+
+    else:
+        # List all tags
+        for name in list_tags(git_dir):
+            print(name)
+
+
 def cmd_gc(args):
     git_dir = get_git_dir()
     result  = run_gc(git_dir, prune=args.prune)
@@ -460,6 +498,18 @@ def main():
         help="File(s) to restore",
     )
     p_restore.set_defaults(func=cmd_restore)
+
+    p_tag = sub.add_parser("tag", help="Create, list, or delete tags")
+    p_tag.add_argument("-a", dest="annotated", action="store_true",
+                       help="Create an annotated tag object")
+    p_tag.add_argument("-m", dest="message", metavar="message",
+                       help="Tag message (implies -a / annotated tag)")
+    p_tag.add_argument("-d", dest="delete", action="store_true",
+                       help="Delete a tag")
+    p_tag.add_argument("name",   nargs="?", default=None, help="Tag name")
+    p_tag.add_argument("commit", nargs="?", default=None,
+                       help="Commit to tag (default: HEAD)")
+    p_tag.set_defaults(func=cmd_tag)
 
     p_gc = sub.add_parser("gc",
                           help="Report (and optionally remove) unreachable loose objects")
