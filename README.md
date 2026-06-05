@@ -85,6 +85,14 @@ pygit status                       # show staged, unstaged, and untracked files
 pygit commit -m "message"          # record staged changes as a commit
 ```
 
+### Stash
+
+```
+pygit stash                        # save changes and restore HEAD state
+pygit stash pop                    # restore most recent stash and remove it
+pygit stash list                   # show all stash entries
+```
+
 ### Diff
 
 ```

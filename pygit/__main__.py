@@ -21,6 +21,9 @@ Usage:
     python -m pygit merge <branch>
     python -m pygit restore --staged <file>
     python -m pygit restore <file>
+    python -m pygit stash
+    python -m pygit stash pop
+    python -m pygit stash list
 """
 
 import os
@@ -42,6 +45,7 @@ from pygitlib.diff import diff_unstaged, diff_staged
 from pygitlib.merge import merge_branch
 from pygitlib.commit import commit as make_commit
 from pygitlib.restore import restore_staged, restore_worktree
+from pygitlib.stash import stash_push, stash_pop, stash_list
 
 
 def cmd_init(args):
@@ -304,6 +308,30 @@ def cmd_switch(args):
         sys.exit(1)
 
 
+def cmd_stash(args):
+    git_dir  = get_git_dir()
+    work_dir = git_dir.parent
+    subcmd   = args.stash_cmd or "push"
+
+    if subcmd == "push":
+        try:
+            stash_push(git_dir, work_dir)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(1)
+
+    elif subcmd == "pop":
+        try:
+            stash_pop(git_dir, work_dir)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(1)
+
+    elif subcmd == "list":
+        for i, msg in stash_list(git_dir):
+            print(f"stash@{{{i}}}: {msg}")
+
+
 def cmd_restore(args):
     git_dir  = get_git_dir()
     work_dir = git_dir.parent
@@ -404,6 +432,14 @@ def main():
         help="File(s) to restore",
     )
     p_restore.set_defaults(func=cmd_restore)
+
+    p_stash = sub.add_parser("stash",
+                             help="Save and restore the working directory state")
+    stash_sub = p_stash.add_subparsers(dest="stash_cmd")
+    stash_sub.add_parser("push", help="Save changes to the stash (default)")
+    stash_sub.add_parser("pop",  help="Restore and drop the most recent stash")
+    stash_sub.add_parser("list", help="List all stash entries")
+    p_stash.set_defaults(func=cmd_stash)
 
     args = parser.parse_args()
     if not args.command:
