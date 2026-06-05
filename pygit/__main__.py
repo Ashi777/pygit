@@ -82,7 +82,20 @@ def cmd_ls_tree(args):
 
 def cmd_log(args):
     git_dir = get_git_dir()
+
     sha = args.sha
+    if sha is None:
+        sha = resolve_ref(git_dir, "HEAD")
+        if sha is None:
+            print("fatal: your current branch has no commits yet")
+            sys.exit(1)
+
+    if args.graph:
+        from pygitlib.graph import render_graph
+        for line in render_graph(git_dir, sha):
+            print(line)
+        return
+
     while sha:
         commit = read_commit(git_dir, sha)
         print(f"\033[33mcommit {sha}\033[0m")
@@ -304,7 +317,10 @@ def main():
     p_ls.set_defaults(func=cmd_ls_tree)
 
     p_log = sub.add_parser("log", help="Show commit history")
-    p_log.add_argument("sha")
+    p_log.add_argument("sha", nargs="?", default=None,
+                       help="Starting commit SHA (default: HEAD)")
+    p_log.add_argument("--graph", action="store_true",
+                       help="Draw ASCII branch graph")
     p_log.set_defaults(func=cmd_log)
 
     p_add = sub.add_parser("add", help="Stage files")
