@@ -19,6 +19,8 @@ Usage:
     python -m pygit switch <branch>
     python -m pygit switch -c <branch>
     python -m pygit merge <branch>
+    python -m pygit restore --staged <file>
+    python -m pygit restore <file>
 """
 
 import os
@@ -39,6 +41,7 @@ from pygitlib.checkout import switch_branch
 from pygitlib.diff import diff_unstaged, diff_staged
 from pygitlib.merge import merge_branch
 from pygitlib.commit import commit as make_commit
+from pygitlib.restore import restore_staged, restore_worktree
 
 
 def cmd_init(args):
@@ -188,7 +191,8 @@ def cmd_status(args):
 
     if has_unstaged:
         print('Changes not staged for commit:')
-        print('  (use "pygit add <file>" to update what will be committed)\n')
+        print('  (use "pygit add <file>" to update what will be committed)')
+        print('  (use "pygit restore <file>" to discard changes in working directory)\n')
         for path in unstaged["modified"]:
             print(f"\tmodified:   {path}")
         for path in unstaged["deleted"]:
@@ -300,6 +304,24 @@ def cmd_switch(args):
         sys.exit(1)
 
 
+def cmd_restore(args):
+    git_dir  = get_git_dir()
+    work_dir = git_dir.parent
+
+    if args.staged:
+        errors = restore_staged(git_dir, args.pathspec)
+    else:
+        errors = restore_worktree(git_dir, work_dir, args.pathspec)
+
+    for p in errors:
+        print(
+            f"error: pathspec '{p}' did not match any file(s) known to pygit",
+            file=sys.stderr,
+        )
+    if errors:
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="pygit",
@@ -371,6 +393,17 @@ def main():
         help="Show staged changes (index vs HEAD)",
     )
     p_diff.set_defaults(func=cmd_diff)
+
+    p_restore = sub.add_parser("restore", help="Restore working tree or index files")
+    p_restore.add_argument(
+        "--staged", "-S", dest="staged", action="store_true",
+        help="Restore the index (unstage the file)",
+    )
+    p_restore.add_argument(
+        "pathspec", nargs="+", metavar="file",
+        help="File(s) to restore",
+    )
+    p_restore.set_defaults(func=cmd_restore)
 
     args = parser.parse_args()
     if not args.command:

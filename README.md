@@ -74,11 +74,13 @@ pygit ls-tree <tree-sha>           # list tree entries
 pygit log <commit-sha>             # walk commit history from given SHA
 ```
 
-### Stage and commit
+### Stage, restore, and commit
 
 ```
 pygit add <file> [<file> ...]      # stage specific files
 pygit add .                        # stage all files
+pygit restore --staged <file>      # unstage a file (keep working tree)
+pygit restore <file>               # discard working-tree changes (restore from index)
 pygit status                       # show staged, unstaged, and untracked files
 pygit commit -m "message"          # record staged changes as a commit
 ```
