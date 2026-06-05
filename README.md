@@ -34,6 +34,12 @@ No external dependencies — only the Python standard library.
   and conflict markers (`<<<<<<< / ======= / >>>>>>>`)
 - `branch`, `switch`, `merge`
 
+**Packfile reader**
+- Parses `.pack` / `.idx` binary format (magic, fan-out table, SHA-1 entries, offsets)
+- Resolves both delta types: `OFS_DELTA` (offset in same pack) and `REF_DELTA` (SHA reference)
+- Arbitrary-depth delta chains via recursive resolution
+- `read_object` falls back to packs automatically — all commands work on packed repos
+
 ## Setup
 
 ```

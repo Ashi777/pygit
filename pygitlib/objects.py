@@ -88,10 +88,17 @@ def read_object(git_dir: Path, sha: str) -> tuple[str, bytes]:
     """
     Read a Git object by SHA-1. Returns (type, raw_data).
 
+    Checks the loose object store first; falls back to pack files so that
+    repositories compacted with `git gc` (or received via clone) work
+    transparently.
+
     Raises ValueError for a malformed object.
-    Raises FileNotFoundError if the object doesn't exist.
+    Raises FileNotFoundError if the object is not found anywhere.
     """
     path = object_path(git_dir, sha)
+    if not path.exists():
+        from .pack import read_packed_object
+        return read_packed_object(git_dir, sha)
     compressed = path.read_bytes()
 
     # Decompress
