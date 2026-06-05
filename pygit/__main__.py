@@ -109,15 +109,27 @@ def cmd_add(args):
     work_dir = git_dir.parent
 
     if args.pathspec == ["."]:
-        # Expand "." to every file in the work tree (excluding .git etc.)
-        _SKIP = {".git", "__pycache__", ".pytest_cache", ".mypy_cache"}
+        # Expand "." to every non-ignored file in the work tree.
+        from pygitlib.gitignore import GitIgnore
+        gi = GitIgnore(work_dir)
         paths = []
         for root, dirs, files in os.walk(work_dir):
-            dirs[:] = sorted(d for d in dirs if d not in _SKIP)
             root_path = Path(root)
+            rel_root = str(root_path.relative_to(work_dir)).replace("\\", "/")
+            if rel_root == ".":
+                rel_root = ""
+            gi.load_dir(rel_root)
+            dirs[:] = sorted(
+                d for d in dirs
+                if d != ".git"
+                and not gi.is_ignored(
+                    f"{rel_root}/{d}" if rel_root else d, is_dir=True
+                )
+            )
             for fname in sorted(files):
-                rel = str((root_path / fname).relative_to(work_dir)).replace("\\", "/")
-                paths.append(rel)
+                rel = f"{rel_root}/{fname}" if rel_root else fname
+                if not gi.is_ignored(rel):
+                    paths.append(rel)
     else:
         paths = args.pathspec
 

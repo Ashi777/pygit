@@ -28,13 +28,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .objects import hash_object, read_commit, read_tree
+from .gitignore import GitIgnore
 
 
 INDEX_MAGIC = b"DIRC"
 INDEX_VERSION = 2
 
-# Directories to skip when walking the working tree
-_SKIP_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache"}
+# Always skip .git regardless of .gitignore rules.
+# __pycache__, .pytest_cache, etc. are now handled by .gitignore.
+_SKIP_DIRS = {".git"}
 
 
 @dataclass
@@ -245,7 +247,7 @@ def _get_head_files(git_dir: Path) -> dict[str, str]:
         try:
             for entry in read_tree(git_dir, tree_sha):
                 full_path = f"{prefix}/{entry.name}" if prefix else entry.name
-                if entry.mode == "040000":
+                if entry.mode in ("040000", "40000"):
                     result.update(_flatten(entry.sha, full_path))
                 else:
                     result[full_path] = entry.sha
@@ -273,7 +275,8 @@ def status(git_dir: Path, work_dir: Path) -> dict:
       "untracked": [...],     # on disk, not in index
     }
 
-    Note: .gitignore is not implemented; __pycache__ and .git are always skipped.
+    .gitignore rules are applied when scanning untracked files; .git is always
+    skipped regardless.
     """
     index_map = {e.path: e for e in read_index(git_dir)}
     head_files = _get_head_files(git_dir)
@@ -303,13 +306,29 @@ def status(git_dir: Path, work_dir: Path) -> dict:
                 unstaged_modified.append(path)
 
     # ---- untracked (on disk, not in index) ----
+    gi = GitIgnore(work_dir)
     untracked = []
     for root, dirs, files in os.walk(work_dir):
-        dirs[:] = sorted(d for d in dirs if d not in _SKIP_DIRS)
         root_path = Path(root)
+        rel_root = str(root_path.relative_to(work_dir)).replace("\\", "/")
+        if rel_root == ".":
+            rel_root = ""
+
+        # Load any .gitignore living in this directory
+        gi.load_dir(rel_root)
+
+        # Prune directories: always skip .git; skip others if gitignored
+        dirs[:] = sorted(
+            d for d in dirs
+            if d not in _SKIP_DIRS
+            and not gi.is_ignored(
+                f"{rel_root}/{d}" if rel_root else d, is_dir=True
+            )
+        )
+
         for fname in sorted(files):
-            rel = str((root_path / fname).relative_to(work_dir)).replace("\\", "/")
-            if rel not in index_map:
+            rel = f"{rel_root}/{fname}" if rel_root else fname
+            if rel not in index_map and not gi.is_ignored(rel, is_dir=False):
                 untracked.append(rel)
 
     return {

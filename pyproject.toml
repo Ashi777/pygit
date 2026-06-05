@@ -15,3 +15,6 @@ pygit = "pygit.__main__:main"
 
 [tool.setuptools]
 packages = ["pygit", "pygitlib"]
+
+[tool.pytest.ini_options]
+addopts = "-v"
