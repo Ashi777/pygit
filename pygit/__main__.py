@@ -24,6 +24,8 @@ Usage:
     python -m pygit stash
     python -m pygit stash pop
     python -m pygit stash list
+    python -m pygit gc
+    python -m pygit gc --prune
 """
 
 import os
@@ -46,6 +48,7 @@ from pygitlib.merge import merge_branch
 from pygitlib.commit import commit as make_commit
 from pygitlib.restore import restore_staged, restore_worktree
 from pygitlib.stash import stash_push, stash_pop, stash_list
+from pygitlib.gc import run_gc
 
 
 def cmd_init(args):
@@ -308,6 +311,31 @@ def cmd_switch(args):
         sys.exit(1)
 
 
+def cmd_gc(args):
+    git_dir = get_git_dir()
+    result  = run_gc(git_dir, prune=args.prune)
+
+    if result["unreachable"] == 0:
+        print("Nothing to collect.")
+        if result["loose_total"] > 0:
+            print(f"  {result['loose_total']} loose object(s), all reachable.")
+        return
+
+    n     = result["unreachable"]
+    size  = result["unreachable_bytes"]
+    label = f"{n} unreachable loose object{'s' if n != 1 else ''} ({size} bytes)"
+
+    if args.verbose:
+        for sha in result["unreachable_shas"]:
+            print(f"unreachable  {sha}")
+
+    if args.prune:
+        print(f"Deleted {label}.")
+    else:
+        print(f"Found {label}.")
+        print("Run 'pygit gc --prune' to delete them.")
+
+
 def cmd_stash(args):
     git_dir  = get_git_dir()
     work_dir = git_dir.parent
@@ -432,6 +460,14 @@ def main():
         help="File(s) to restore",
     )
     p_restore.set_defaults(func=cmd_restore)
+
+    p_gc = sub.add_parser("gc",
+                          help="Report (and optionally remove) unreachable loose objects")
+    p_gc.add_argument("--prune", action="store_true",
+                      help="Delete unreachable objects (default: report only)")
+    p_gc.add_argument("--verbose", "-v", action="store_true",
+                      help="List the SHA of each unreachable object")
+    p_gc.set_defaults(func=cmd_gc)
 
     p_stash = sub.add_parser("stash",
                              help="Save and restore the working directory state")

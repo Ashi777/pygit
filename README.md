@@ -40,6 +40,11 @@ No external dependencies — only the Python standard library.
 - Arbitrary-depth delta chains via recursive resolution
 - `read_object` falls back to packs automatically — all commands work on packed repos
 
+**Garbage collection**
+- Full reachability walk: every commit, tree, and blob reachable from any branch, HEAD, stash, or MERGE_HEAD
+- Staged blobs (index) are always protected — staged work is never deleted
+- `gc` reports unreachable loose objects; `gc --prune` removes them
+
 ## Setup
 
 ```
@@ -97,6 +102,14 @@ pygit commit -m "message"          # record staged changes as a commit
 pygit stash                        # save changes and restore HEAD state
 pygit stash pop                    # restore most recent stash and remove it
 pygit stash list                   # show all stash entries
+```
+
+### Garbage collection
+
+```
+pygit gc                           # report unreachable loose objects
+pygit gc --prune                   # delete them
+pygit gc --verbose                 # list each unreachable SHA
 ```
 
 ### Diff
