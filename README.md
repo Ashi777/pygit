@@ -60,6 +60,11 @@ No external dependencies — only the Python standard library.
 - Works on any local git repo (pygit or real git)
 - `pygit serve [--port PORT]`
 
+**Performance benchmarks**
+- `benchmarks/bench.py` measures `pygit add` vs `git add` throughput
+- Reports files/second and MB/second across 100 / 500 / 1 000 file counts
+- At 1 KB files: pygit is 1.3–1.7× slower than C git (disk I/O dominates)
+
 **Type safety**
 - Full `mypy --strict` coverage across all 16 source files — zero errors
 - Enforced in CI on every push
@@ -172,6 +177,31 @@ pygit serve --no-browser           # don't auto-open the browser
 The visualizer reads the `.git` directory of the current repo and renders an
 interactive D3.js commit graph in your browser.  Click any node to inspect the
 commit's metadata, file tree, and file contents.
+
+## Performance Benchmarks
+
+`pygit add` vs `git add` on ~1 KB source-like files (Windows 11, Python 3.10,
+AMD Ryzen, single run). Measured end-to-end subprocess wall-clock time.
+
+| Files | pygit time | files/s | MB/s | git time | files/s | MB/s | ratio |
+|------:|-----------:|--------:|-----:|---------:|--------:|-----:|------:|
+|   100 |     1.05 s |     95/s | 0.10 |   0.62 s |    162/s | 0.16 |   1.7x |
+|   500 |     3.47 s |    144/s | 0.14 |   2.70 s |    185/s | 0.19 |   1.3x |
+|  1000 |     7.06 s |    142/s | 0.14 |   5.37 s |    186/s | 0.19 |   1.3x |
+
+The 1.3–1.7× gap shows that at 1 KB files the bottleneck is **disk I/O**,
+not Python vs C.  pygit writes each blob as a separate compressed loose object
+(one file-system write per file), which is the same strategy as real git and
+explains why the throughput converges at larger counts.
+
+Reproduce on your machine:
+
+```
+python benchmarks/bench.py                  # default: 100/500/1000 files, 1 KB
+python benchmarks/bench.py --file-kb 5     # larger files
+python benchmarks/bench.py --runs 3        # median of 3 runs
+python benchmarks/bench.py --markdown      # emit GitHub markdown table
+```
 
 ## Run tests
 
