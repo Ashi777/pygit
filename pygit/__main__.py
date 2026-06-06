@@ -398,6 +398,17 @@ def cmd_stash(args):
             print(f"stash@{{{i}}}: {msg}")
 
 
+def cmd_serve(args):
+    try:
+        from pygitlib.serve import serve
+    except ImportError:
+        print("error: flask is required — install it with: pip install flask",
+              file=sys.stderr)
+        sys.exit(1)
+    git_dir = get_git_dir()
+    serve(git_dir, port=args.port, open_browser=not args.no_browser)
+
+
 def cmd_restore(args):
     git_dir  = get_git_dir()
     work_dir = git_dir.parent
@@ -526,6 +537,13 @@ def main():
     stash_sub.add_parser("pop",  help="Restore and drop the most recent stash")
     stash_sub.add_parser("list", help="List all stash entries")
     p_stash.set_defaults(func=cmd_stash)
+
+    p_serve = sub.add_parser("serve", help="Launch the web commit-graph visualizer")
+    p_serve.add_argument("--port", type=int, default=5000,
+                         help="Port to listen on (default: 5000)")
+    p_serve.add_argument("--no-browser", action="store_true",
+                         help="Don't open the browser automatically")
+    p_serve.set_defaults(func=cmd_serve)
 
     args = parser.parse_args()
     if not args.command:

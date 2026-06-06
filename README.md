@@ -51,6 +51,15 @@ No external dependencies — only the Python standard library.
 - Annotated tags: a full `tag` object with tagger identity, timestamp, and message
 - `tag`, `tag -a -m`, `tag -d`
 
+**Web visualizer**
+- Flask REST API + D3.js v7 frontend — no React, no build step
+- Interactive commit graph: nodes = commits, edges = parent relationships
+- Color-coded merge commits (orange) and tagged commits (green)
+- Branch and tag pills on each node; zoom / pan the graph
+- Click any node → sidebar shows commit metadata, file tree, and blob content
+- Works on any local git repo (pygit or real git)
+- `pygit serve [--port PORT]`
+
 **Type safety**
 - Full `mypy --strict` coverage across all 16 source files — zero errors
 - Enforced in CI on every push
@@ -150,6 +159,19 @@ pygit switch <branch>              # switch to an existing branch
 pygit switch -c <branch>           # create and switch in one step
 pygit merge <branch>               # merge a branch into the current branch
 ```
+
+### Web visualizer
+
+```
+pip install flask                  # one-time setup (optional dependency)
+pygit serve                        # open http://localhost:5000
+pygit serve --port 8080            # custom port
+pygit serve --no-browser           # don't auto-open the browser
+```
+
+The visualizer reads the `.git` directory of the current repo and renders an
+interactive D3.js commit graph in your browser.  Click any node to inspect the
+commit's metadata, file tree, and file contents.
 
 ## Run tests
 

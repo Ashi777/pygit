@@ -10,11 +10,22 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 
+[project.optional-dependencies]
+serve = ["flask>=2.0"]
+
 [project.scripts]
 pygit = "pygit.__main__:main"
 
 [tool.setuptools]
 packages = ["pygit", "pygitlib"]
 
+[tool.setuptools.package-data]
+pygitlib = ["templates/*.html"]
+
 [tool.pytest.ini_options]
 addopts = "-v"
+
+# mypy: serve.py uses flask (optional dep) with type: ignore — skip strict on it
+[[tool.mypy.overrides]]
+module = "pygitlib.serve"
+ignore_errors = true
