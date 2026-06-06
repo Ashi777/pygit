@@ -23,9 +23,12 @@ Cross-check with real git:
   $ git diff --staged   # matches diff_staged()
 """
 
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 from .objects import hash_object, read_object, read_commit, read_tree
+from .index import read_index, IndexEntry
 
 
 # ---------------------------------------------------------------------------
@@ -51,7 +54,7 @@ def _decode_lines(data: bytes) -> list[str] | None:
 # Myers O(ND) diff — forward pass
 # ---------------------------------------------------------------------------
 
-def _shortest_edit(a: list, b: list) -> list[list[int]]:
+def _shortest_edit(a: list[Any], b: list[Any]) -> list[list[int]]:
     """
     Myers forward pass.  Returns the *trace* — a snapshot of the furthest-
     reaching x-coordinate on each diagonal k after each edit step d.
@@ -88,7 +91,7 @@ def _shortest_edit(a: list, b: list) -> list[list[int]]:
 # Myers O(ND) diff — backtrack
 # ---------------------------------------------------------------------------
 
-def _backtrack(trace: list[list[int]], a: list, b: list) -> list[tuple[str, str]]:
+def _backtrack(trace: list[list[int]], a: list[Any], b: list[Any]) -> list[tuple[str, str]]:
     """
     Reconstruct the edit script by walking the trace in reverse.
     Returns list of (op, element) where op is '=', '+', or '-'.
@@ -140,7 +143,7 @@ def _backtrack(trace: list[list[int]], a: list, b: list) -> list[tuple[str, str]
 # Public diff API
 # ---------------------------------------------------------------------------
 
-def myers_diff(a: list, b: list) -> list[tuple[str, str]]:
+def myers_diff(a: list[Any], b: list[Any]) -> list[tuple[str, str]]:
     """
     Compute the shortest edit script from sequence *a* to sequence *b*.
 
@@ -181,7 +184,9 @@ def _hunk_range(start: int, count: int) -> str:
     return f"{start},{count}"
 
 
-def _build_hunks(edits: list[tuple[str, str]], context: int = 3):
+def _build_hunks(
+    edits: list[tuple[str, str]], context: int = 3
+) -> Generator[tuple[int, int, list[tuple[str, str, int, int]]], None, None]:
     """
     Partition an edit script into *hunks* — groups of nearby changes
     surrounded by up to *context* unchanged lines on each side.
@@ -304,8 +309,6 @@ def diff_unstaged(git_dir: Path, work_dir: Path) -> list[tuple[str, str]]:
     Returns a list of (path, diff_text) for every file that differs.
     diff_text is a complete git-compatible diff string including headers.
     """
-    from .index import read_index
-
     results: list[tuple[str, str]] = []
 
     for entry in read_index(git_dir):
@@ -356,10 +359,8 @@ def diff_staged(git_dir: Path) -> list[tuple[str, str]]:
 
     Returns a list of (path, diff_text) for every file that differs.
     """
-    from .index import read_index
-
     head = _head_tree(git_dir)
-    index: dict[str, str] = {e.path: e for e in read_index(git_dir)}
+    index: dict[str, IndexEntry] = {e.path: e for e in read_index(git_dir)}
 
     results: list[tuple[str, str]] = []
 
@@ -378,6 +379,7 @@ def diff_staged(git_dir: Path) -> list[tuple[str, str]]:
 
         if in_head and not in_idx:
             # Deleted in index
+            assert head_sha is not None
             _, blob = read_object(git_dir, head_sha)
             old_lines = _decode_lines(blob)
             header = (
@@ -408,6 +410,7 @@ def diff_staged(git_dir: Path) -> list[tuple[str, str]]:
 
         elif head_sha != idx_sha:
             # Modified
+            assert head_sha is not None
             _, old_blob = read_object(git_dir, head_sha)
             _, new_blob = read_object(git_dir, idx_sha)
             old_lines = _decode_lines(old_blob)

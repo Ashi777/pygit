@@ -26,6 +26,7 @@ import os
 import struct
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .objects import hash_object, read_commit, read_tree
 from .gitignore import GitIgnore
@@ -258,7 +259,7 @@ def _get_head_files(git_dir: Path) -> dict[str, str]:
     return _flatten(commit.tree, "")
 
 
-def status(git_dir: Path, work_dir: Path) -> dict:
+def status(git_dir: Path, work_dir: Path) -> dict[str, Any]:
     """
     Compare HEAD, index, and working tree. Returns:
 

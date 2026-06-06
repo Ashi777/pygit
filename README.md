@@ -1,6 +1,7 @@
 # PyGit — Git Implementation from Scratch
 
 [![Tests](https://github.com/Ashi777/pygit/actions/workflows/test.yml/badge.svg)](https://github.com/Ashi777/pygit/actions/workflows/test.yml)
+[![mypy](https://img.shields.io/badge/mypy-strict-blue)](https://mypy.readthedocs.io/)
 
 A byte-for-byte compatible Git implementation written in pure Python.
 Produces identical SHA-1 hashes and object formats to the real `git` binary.
@@ -49,6 +50,10 @@ No external dependencies — only the Python standard library.
 - Lightweight tags: a single ref file pointing to a commit SHA (no new object)
 - Annotated tags: a full `tag` object with tagger identity, timestamp, and message
 - `tag`, `tag -a -m`, `tag -d`
+
+**Type safety**
+- Full `mypy --strict` coverage across all 16 source files — zero errors
+- Enforced in CI on every push
 
 ## Setup
 

@@ -21,6 +21,7 @@ Cross-check with real git:
 
 import time
 from pathlib import Path
+from typing import Any
 
 from .objects import write_tree, write_commit, read_commit, TreeEntry, Commit
 from .index import read_index, IndexEntry
@@ -82,7 +83,7 @@ def _build_tree(git_dir: Path, entries: list[IndexEntry]) -> str:
     """
     # Build a nested dict: each leaf is (blob_sha, mode_str),
     # each interior node is a plain dict representing a subdirectory.
-    tree: dict = {}
+    tree: dict[str, Any] = {}
     for entry in entries:
         parts = entry.path.split("/")
         mode_str = f"{entry.mode:o}"   # 0o100644 → "100644"
@@ -91,7 +92,7 @@ def _build_tree(git_dir: Path, entries: list[IndexEntry]) -> str:
             node = node.setdefault(part, {})
         node[parts[-1]] = (entry.sha, mode_str)
 
-    def _write(subtree: dict) -> str:
+    def _write(subtree: dict[str, Any]) -> str:
         te: list[TreeEntry] = []
         for name, value in sorted(subtree.items()):
             if isinstance(value, dict):

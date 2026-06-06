@@ -85,7 +85,7 @@ def _glob_to_re(glob: str) -> str:
 # Single-rule compiler
 # ---------------------------------------------------------------------------
 
-def _compile_rule(raw_line: str, scope: str) -> tuple | None:
+def _compile_rule(raw_line: str, scope: str) -> tuple[str, bool, bool, re.Pattern[str]] | None:
     """
     Parse one line from a .gitignore file.
 
@@ -170,7 +170,7 @@ class GitIgnore:
     def __init__(self, work_dir: Path):
         self.work_dir = work_dir
         # (scope, negate, dir_only, compiled_regex)
-        self._rules: list[tuple[str, bool, bool, re.Pattern]] = []
+        self._rules: list[tuple[str, bool, bool, re.Pattern[str]]] = []
         self._loaded: set[str] = set()
         self.load_dir("")                   # always load the root .gitignore
 

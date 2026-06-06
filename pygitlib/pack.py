@@ -228,8 +228,8 @@ class PackFile:
 
         if self._data[:4] != b"PACK":
             raise ValueError(f"{pack_path.name}: not a packfile (bad magic)")
-        self._version   = struct.unpack(">I", self._data[4:8])[0]
-        self._n_objects = struct.unpack(">I", self._data[8:12])[0]
+        self._version:   int = struct.unpack(">I", self._data[4:8])[0]
+        self._n_objects: int = struct.unpack(">I", self._data[8:12])[0]
 
     @property
     def n_objects(self) -> int:

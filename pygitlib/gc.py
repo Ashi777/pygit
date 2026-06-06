@@ -29,6 +29,7 @@ Public API
 """
 
 from pathlib import Path
+from typing import Any
 
 
 # ---------------------------------------------------------------------------
@@ -130,9 +131,9 @@ def find_reachable(git_dir: Path) -> set[str]:
                 queue.append(c.tree)
 
         elif obj_type == "tree":
-            for entry in decode_tree(data):
-                if entry.sha not in reachable:
-                    queue.append(entry.sha)
+            for tree_entry in decode_tree(data):
+                if tree_entry.sha not in reachable:
+                    queue.append(tree_entry.sha)
 
         elif obj_type == "tag":
             # Annotated tag — follow through to the tagged object
@@ -180,7 +181,7 @@ def find_loose_objects(git_dir: Path) -> dict[str, Path]:
 # Step 4 — report / prune
 # ---------------------------------------------------------------------------
 
-def run_gc(git_dir: Path, prune: bool = False) -> dict:
+def run_gc(git_dir: Path, prune: bool = False) -> dict[str, Any]:
     """
     Identify loose objects that are not reachable from any ref or the index.
 

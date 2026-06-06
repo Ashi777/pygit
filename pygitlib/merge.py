@@ -36,6 +36,7 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from .objects import (
     hash_object, read_object, read_commit, read_tree, write_tree,
@@ -99,7 +100,7 @@ def find_merge_base(git_dir: Path, sha_a: str, sha_b: str) -> str | None:
 # Line-level three-way merge
 # ---------------------------------------------------------------------------
 
-def _to_hunks(ops: list) -> list[tuple[int, int, list[str]]]:
+def _to_hunks(ops: list[tuple[str, str]]) -> list[tuple[int, int, list[str]]]:
     """
     Convert a myers_diff edit script into change hunks.
     Each hunk is (src_start, src_end, replacement_lines):
@@ -252,12 +253,12 @@ def _flatten_tree(
     return result
 
 
-def _build_tree_dict(files: dict[str, tuple[str, str]]) -> dict:
+def _build_tree_dict(files: dict[str, tuple[str, str]]) -> dict[str, Any]:
     """
     Convert a flat {path: (sha, mode)} mapping into a nested directory dict
     suitable for _write_tree_recursive.
     """
-    tree: dict = {}
+    tree: dict[str, Any] = {}
     for path, value in files.items():
         parts = path.split("/")
         node = tree
@@ -267,7 +268,7 @@ def _build_tree_dict(files: dict[str, tuple[str, str]]) -> dict:
     return tree
 
 
-def _write_tree_recursive(git_dir: Path, tree: dict) -> str:
+def _write_tree_recursive(git_dir: Path, tree: dict[str, Any]) -> str:
     """
     Recursively write nested dicts as git tree objects.
     Leaf values are (blob_sha, mode_str); subtree values are dicts.
@@ -416,7 +417,7 @@ def _do_three_way_merge(
         if o_sha == t_sha:
             # Both sides agree (both added same, both deleted, or unchanged)
             if o_sha is not None:
-                merged_files[path] = (o_sha, o_mode or t_mode)
+                merged_files[path] = (o_sha, o_mode or t_mode or "100644")
             continue
 
         if o_sha is None and t_sha is None:
@@ -425,9 +426,10 @@ def _do_three_way_merge(
         if b_sha is None:
             # New file (added by one or both sides with different content)
             if o_sha is None:
-                merged_files[path] = (t_sha, t_mode)
+                assert t_sha is not None  # not both None (checked above)
+                merged_files[path] = (t_sha, t_mode or "100644")
             elif t_sha is None:
-                merged_files[path] = (o_sha, o_mode)
+                merged_files[path] = (o_sha, o_mode or "100644")
             else:
                 # Both added different content
                 _emit_conflict(git_dir, work_dir, path,
@@ -443,7 +445,8 @@ def _do_three_way_merge(
                 pass  # their side unchanged → honour our deletion
             else:
                 # They modified, we deleted → conflict (keep theirs)
-                merged_files[path] = (t_sha, t_mode)
+                assert t_sha is not None  # o_sha is None and not both None
+                merged_files[path] = (t_sha, t_mode or "100644")
                 conflicts.append(path)
             continue
 
@@ -453,16 +456,17 @@ def _do_three_way_merge(
                 pass  # our side unchanged → honour their deletion
             else:
                 # We modified, they deleted → conflict (keep ours)
-                merged_files[path] = (o_sha, o_mode)
+                assert o_sha is not None  # t_sha is None and not both None
+                merged_files[path] = (o_sha, o_mode or "100644")
                 conflicts.append(path)
             continue
 
         # ── Content merge (all three versions exist, all different) ──────
         if o_sha == b_sha:
-            merged_files[path] = (t_sha, t_mode)   # only theirs changed
+            merged_files[path] = (t_sha, t_mode or "100644")   # only theirs changed
             continue
         if t_sha == b_sha:
-            merged_files[path] = (o_sha, o_mode)   # only ours changed
+            merged_files[path] = (o_sha, o_mode or "100644")   # only ours changed
             continue
 
         # Both sides changed → line-level merge
@@ -570,8 +574,8 @@ def _emit_conflict(
     their_sha: str,
     our_label: str,
     their_label: str,
-    merged_files: dict,
-    written_to_disk: set,
+    merged_files: dict[str, tuple[str, str]],
+    written_to_disk: set[str],
 ) -> None:
     """
     Perform a line-level three-way merge for *path*.

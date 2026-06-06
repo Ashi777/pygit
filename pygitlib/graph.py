@@ -21,7 +21,7 @@ Algorithm:
 """
 
 from pathlib import Path
-from .objects import read_commit
+from .objects import read_commit, Commit
 
 _YELLOW = "\033[33m"
 _RESET  = "\033[0m"
@@ -31,13 +31,13 @@ _RESET  = "\033[0m"
 # Step 1 — collect commits
 # ---------------------------------------------------------------------------
 
-def _collect(git_dir: Path, sha: str) -> tuple[dict, list[str]]:
+def _collect(git_dir: Path, sha: str) -> tuple[dict[str, Commit], list[str]]:
     """
     Return (commits, topo_order) for all commits reachable from sha.
     topo_order is children-before-parents (reversed DFS post-order).
     Iterative to avoid Python recursion limits on deep histories.
     """
-    commits: dict[str, object] = {}
+    commits: dict[str, Commit] = {}
     temp_visited: set[str] = set()
     done: set[str] = set()
     post_order: list[str] = []

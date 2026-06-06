@@ -135,7 +135,7 @@ def switch_branch(git_dir: Path, work_dir: Path,
     # ------------------------------------------------------------------ #
     if create:
         # create_branch raises ValueError if branch exists or no commits
-        target_sha = create_branch(git_dir, target)
+        create_branch(git_dir, target)
         set_head_to_branch(git_dir, target)
         print(f"Switched to a new branch '{target}'")
         return          # same commit → no file changes needed
@@ -147,6 +147,7 @@ def switch_branch(git_dir: Path, work_dir: Path,
             f"       pygit switch -c {target}    # create and switch in one step"
         )
     target_sha = resolve_ref(git_dir, target)
+    assert target_sha is not None  # branch exists (checked above) so ref resolves
 
     # ------------------------------------------------------------------ #
     # 2. Refuse if working tree is dirty                                   #
