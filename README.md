@@ -3,6 +3,8 @@
 [![Tests](https://github.com/Ashi777/pygit/actions/workflows/test.yml/badge.svg)](https://github.com/Ashi777/pygit/actions/workflows/test.yml)
 [![mypy](https://img.shields.io/badge/mypy-strict-blue)](https://mypy.readthedocs.io/)
 
+![PyGit Demo](demo.gif)
+
 A byte-for-byte compatible Git implementation written in pure Python.
 Produces identical SHA-1 hashes and object formats to the real `git` binary.
 No external dependencies — only the Python standard library.
@@ -68,6 +70,41 @@ No external dependencies — only the Python standard library.
 **Type safety**
 - Full `mypy --strict` coverage across all 16 source files — zero errors
 - Enforced in CI on every push
+
+## Recording the demo GIF
+
+> Skip this section if `demo.gif` is already in the repo.
+
+The `scripts/demo.ps1` script runs the entire workflow automatically so you
+only need to record your screen.
+
+**Step 1 — configure your terminal**
+- Open Windows Terminal (or any terminal with a dark theme)
+- Set window size to at least 110 columns × 32 rows
+- Font: Cascadia Code or Consolas, 14 pt
+
+**Step 2 — record with ScreenToGif** (free, no install required)
+1. Download from <https://www.screentogif.com/>
+2. Open ScreenToGif → Recorder → Window capture
+3. Frame around the terminal window
+4. Click **Record**
+5. In the terminal, run:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\demo.ps1
+   ```
+6. Wait for the script to finish (~65 s)
+7. Click **Stop**
+8. Trim any blank frames at the start/end
+9. Editor → Export → Gif
+   - Optimize: ✓, Repeat: 0 (loop forever), Max size: keep original
+10. Save as **`demo.gif`** in the repo root
+
+**Step 3 — commit the GIF**
+```powershell
+git add demo.gif
+git commit -m "docs: add terminal demo GIF"
+git push
+```
 
 ## Setup
 

@@ -44,10 +44,12 @@ def _decode_lines(data: bytes) -> list[str] | None:
     """
     Decode raw bytes into a list of lines (no trailing newlines).
     Returns None for binary files.
+    Uses utf-8-sig so a UTF-8 BOM (written by PowerShell / Notepad) is
+    silently stripped rather than appearing as a U+FEFF character in diffs.
     """
     if _is_binary(data):
         return None
-    return data.decode("utf-8", errors="replace").splitlines()
+    return data.decode("utf-8-sig", errors="replace").splitlines()
 
 
 # ---------------------------------------------------------------------------
